@@ -239,8 +239,7 @@ public class FakeInspectorMod implements ModInitializer {
                                     }
                                     slots.add(new FakeSlot(idx++, id, count));
                                 }
-                                String shortName = uuidStr.length() >= 8 ? uuidStr.substring(0, 8) : uuidStr;
-                                String name = knownNames.getOrDefault(uuidStr, shortName);
+                                String name = knownNames.getOrDefault(uuidStr, "未命名假人");
                                 FakePlayerCollector.putOffline(uuidStr, new FakePlayerData(name, slots));
                             } catch (Exception ignored) {
                                 // 单个文件失败不影响其它
