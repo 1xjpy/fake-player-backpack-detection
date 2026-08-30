@@ -48,8 +48,12 @@ public class FakeInspectorMod implements ModInitializer {
             FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector.json");
     private static final Path EVENT_FILE =
             FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector-events.log");
+    private static final Path NAMES_FILE =
+            FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector-names.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type DATA_TYPE = new TypeToken<List<FakePlayerData>>() {
+    }.getType();
+    private static final Type NAMES_TYPE = new TypeToken<Map<String, String>>() {
     }.getType();
 
     private int tickCounter = 0;
@@ -112,6 +116,15 @@ public class FakeInspectorMod implements ModInitializer {
                 appendEvent("kill", e.getValue(), e.getKey());
             }
         }
+        boolean nameDirty = false;
+        for (Map.Entry<String, String> e : now.entrySet()) {
+            if (knownNames.putIfAbsent(e.getKey(), e.getValue()) == null) {
+                nameDirty = true;
+            }
+        }
+        if (nameDirty) {
+            saveNamesToFile();
+        }
         lastOnline.clear();
         lastOnline.putAll(now);
     }
@@ -131,6 +144,18 @@ public class FakeInspectorMod implements ModInitializer {
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (Exception ignored) {
             // 忽略写入失败
+        }
+    }
+
+    private static void saveNamesToFile() {
+        try {
+            Path parent = NAMES_FILE.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(NAMES_FILE, GSON.toJson(knownNames, NAMES_TYPE), StandardCharsets.UTF_8);
+        } catch (Exception ignored) {
+            // 忽略
         }
     }
 
@@ -186,6 +211,17 @@ public class FakeInspectorMod implements ModInitializer {
 
     /** 从事件日志恢复 uuid -> 假人真名 映射。 */
     private static void loadKnownNames() {
+        // 先加载持久化的 uuid -> 名字
+        try {
+            if (Files.exists(NAMES_FILE)) {
+                Map<String, String> m = GSON.fromJson(Files.readString(NAMES_FILE, StandardCharsets.UTF_8), NAMES_TYPE);
+                if (m != null) {
+                    knownNames.putAll(m);
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略
+        }
         try {
             if (Files.exists(EVENT_FILE)) {
                 for (String line : Files.readAllLines(EVENT_FILE, StandardCharsets.UTF_8)) {
