@@ -72,6 +72,11 @@ public final class FakePlayerCollector {
         return new ArrayList<>(CACHE.values());
     }
 
+    /** 导出所有假人：UUID -> 数据。 */
+    public static Map<String, FakePlayerData> entries() {
+        return new java.util.HashMap<>(CACHE);
+    }
+
     /** 判断两份数据是否一致（忽略顺序）。 */
     public static boolean sameData(List<FakePlayerData> a, List<FakePlayerData> b) {
         if (a == null || b == null) {

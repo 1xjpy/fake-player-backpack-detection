@@ -65,6 +65,7 @@ public class FakeInspectorMod implements ModInitializer {
     @Override
     public void onInitialize() {
         loadKnownNames();
+        FakeInspectorCommand.register();
         PayloadTypeRegistry.serverboundPlay().register(FakePlayerQueryPayload.TYPE, FakePlayerQueryPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(FakePlayerResponsePayload.TYPE, FakePlayerResponsePayload.STREAM_CODEC);
 
