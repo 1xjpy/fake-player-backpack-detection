@@ -36,13 +36,17 @@ public class FakeInspectorClient implements ClientModInitializer {
 
         // 加入世界时自动请求一次
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
-                client.execute(() -> ClientPlayNetworking.send(new FakePlayerQueryPayload())));
+                client.execute(() -> {
+            ClientFakeDataCache.loadFromFile();
+            ClientPlayNetworking.send(new FakePlayerQueryPayload());
+        }));
 
         // 兜底：进游戏后如果还没有假人数据，自动请求，直到拿到为止
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player != null && ClientFakeDataCache.get().isEmpty()) {
                 if (++autoTicks >= 40) {
                     autoTicks = 0;
+                    ClientFakeDataCache.loadFromFile();
                     ClientPlayNetworking.send(new FakePlayerQueryPayload());
                 }
             } else {
