@@ -53,6 +53,11 @@ public final class FakePlayerCollector {
         }
     }
 
+    /** 从磁盘读到的离线玩家/假人数据，以 UUID 作 key 写入（避免与在线假人名字冲突）。 */
+    public static void putOffline(String key, FakePlayerData data) {
+        CACHE.put(key, data);
+    }
+
     /** 获取当前缓存快照（用于写回文件 / 发送给客户端）。 */
     public static List<FakePlayerData> snapshot() {
         return new ArrayList<>(CACHE.values());
