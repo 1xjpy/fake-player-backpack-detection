@@ -6,11 +6,32 @@
 
 ## 兼容性
 
-- Minecraft：`26.1.2`（Fabric，未混淆，Mojang 官方类名）
+- Minecraft：`26.1.2` / `26.2`（Mojang 官方类名），以及 `1.21` – `1.21.11` 全系（Yarn 映射）
 - Fabric Loader：`>=0.19.0`
 - 前置：`fabric-api`
 - 建议（可选）：`carpet`、`jei` / `roughlyenoughitems` / `emi`
 
+## 📦 多版本下载（按你的 Minecraft 版本选）
+
+每个版本一个 jar，文件名末尾 `mc<版本>` 就是目标版本。到 [Releases](https://github.com/1xjpy/fake-player-backpack-detection/releases) 下载对应文件放入 `mods` 即可。
+
+| Minecraft 版本 | 文件名后缀 | 映射 | Java |
+|---|---|---|---|
+| 26.1.2 / 26.2 | `-mc26.1.2.jar` / `-mc26.2.jar` | Mojang 官方名 | 25 |
+| 1.21 | `-mc1.21.jar` | Yarn | 21 |
+| 1.21.1 | `-mc1.21.1.jar` | Yarn | 21 |
+| 1.21.2 | `-mc1.21.2.jar` | Yarn | 21 |
+| 1.21.3 | `-mc1.21.3.jar` | Yarn | 21 |
+| 1.21.4 | `-mc1.21.4.jar` | Yarn | 21 |
+| 1.21.5 | `-mc1.21.5.jar` | Yarn | 21 |
+| 1.21.6 | `-mc1.21.6.jar` | Yarn | 21 |
+| 1.21.7 | `-mc1.21.7.jar` | Yarn | 21 |
+| 1.21.8 | `-mc1.21.8.jar` | Yarn | 21 |
+| 1.21.9 | `-mc1.21.9.jar` | Yarn | 21 |
+| 1.21.10 | `-mc1.21.10.jar` | Yarn | 21 |
+| 1.21.11 | `-mc1.21.11.jar` | Yarn | 21 |
+
+> 举例：你是 1.21.4，就下 `fake-player-inspector-1.0.2-mc1.21.4.jar`。
 ## 功能
 
 - **进游戏自动读取**：进入世界自动扫描 `players\data\*.dat`，读取所有历史假人背包。
@@ -35,7 +56,7 @@
 
 ## 构建
 
-需要 Java 25 与 Gradle：
+源码按版本拆成多个构建目录（`work/fake-player-inspector-*`）。以 26.1.2 为例，需要 Java 25 与 Gradle：
 
 ```powershell
 $env:JAVA_HOME='<你的 Java 25 路径>'
@@ -43,7 +64,7 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 gradle build
 ```
 
-构建产物在 `build\libs\fake-player-inspector-1.0.0.jar`。
+构建产物在 `build\libs\fake-player-inspector-1.0.2.jar`。不同版本请用对应的 Yarn/Mojang 映射与 Gradle 配置。
 
 ## 数据文件
 
