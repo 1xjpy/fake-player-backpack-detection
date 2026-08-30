@@ -34,7 +34,7 @@ public final class FakeInspectorCommand {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(Commands.literal("fpi")
-                    .executes(FakeInspectorCommand::list)
+                    .executes(FakeInspectorCommand::lokpkkHelp)
                     .then(Commands.literal("list").executes(FakeInspectorCommand::list))
                     .then(Commands.literal("auto")
                             .then(Commands.argument("state", BoolArgumentType.bool())
@@ -47,22 +47,6 @@ public final class FakeInspectorCommand {
                                     })))
                     .then(Commands.argument("target", StringArgumentType.word())
                             .executes(ctx -> backpack(ctx, StringArgumentType.getString(ctx, "target")))));
-
-            // 地毯风格开关：/carpet lokpkk true/false
-            var carpetNode = dispatcher.getRoot().getChild("carpet");
-            if (carpetNode != null) {
-                carpetNode.addChild(Commands.literal("lokpkk")
-                        .executes(FakeInspectorCommand::lokpkkHelp)
-                        .then(Commands.argument("state", BoolArgumentType.bool())
-                                .executes(ctx -> {
-                                    boolean enabled = BoolArgumentType.getBool(ctx, "state");
-                                    FakeInspectorMod.setAutoRead(enabled);
-                                    ctx.getSource().sendSuccess(() -> Component.literal(
-                                            "[FakePlayerInspector] 后台读取已" + (enabled ? "开启" : "关闭")), false);
-                                    return 1;
-                                }))
-                        .build());
-            }
         });
     }
 
@@ -75,7 +59,6 @@ public final class FakeInspectorCommand {
         src.sendSuccess(() -> Component.literal("    /fpi                    查看假人列表"), false);
         src.sendSuccess(() -> Component.literal("    /fpi <假人名>           查看某假人背包"), false);
         src.sendSuccess(() -> Component.literal("    /fpi auto true/false    后台读取开关"), false);
-        src.sendSuccess(() -> Component.literal("    /carpet lokpkk true/false   后台读取开关"), false);
         return 1;
     }
 
