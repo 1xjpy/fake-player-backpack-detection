@@ -16,9 +16,21 @@ public final class FakePlayerDetector {
             return false;
         }
         String className = player.getClass().getName();
-        return className.contains("EntityPlayerMPFake")
+        if (className.contains("EntityPlayerMPFake")
                 || className.contains("PlayerMPFake")
                 || className.contains("FakePlayer")
-                || className.endsWith(".Fake");
+                || className.toLowerCase().contains("fake")) {
+            return true;
+        }
+        // 部分 carpet 系扩展的假人，connection 是伪造的（NetHandlerPlayServerFake）
+        try {
+            Object connection = player.connection;
+            if (connection != null && connection.getClass().getName().contains("NetHandlerPlayServerFake")) {
+                return true;
+            }
+        } catch (Exception ignored) {
+            // 忽略反射异常
+        }
+        return false;
     }
 }
