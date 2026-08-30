@@ -10,7 +10,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.ContainerComponent;
+import net.minecraft.world.item.component.ItemContainerContents;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -108,12 +108,12 @@ public final class FakePlayerCollector {
         if (depth > 3) {
             return;
         }
-        ContainerComponent container = stack.get(DataComponents.CONTAINER);
+        ItemContainerContents container = stack.get(DataComponents.CONTAINER);
         if (container == null) {
             return;
         }
         int i = 0;
-        for (ItemStack inner : container) {
+        for (ItemStack inner : container.nonEmptyItemCopyStream().toList()) {
             if (inner != null && !inner.isEmpty()) {
                 String id = BuiltInRegistries.ITEM.getKey(inner.getItem()).toString();
                 int slotIndex = base + 1000 + i;
