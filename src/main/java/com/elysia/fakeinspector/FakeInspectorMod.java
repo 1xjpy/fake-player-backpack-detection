@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -57,6 +58,11 @@ public class FakeInspectorMod implements ModInitializer {
                 if (!FakePlayerCollector.sameData(lastSaved, now)) {
                     lastSaved = now;
                     saveToFile();
+                    // 实时推送给所有在线客户端，无需手动刷新
+                    FakePlayerResponsePayload response = new FakePlayerResponsePayload(now);
+                    for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                        ServerPlayNetworking.send(player, response);
+                    }
                 }
             }
         });
