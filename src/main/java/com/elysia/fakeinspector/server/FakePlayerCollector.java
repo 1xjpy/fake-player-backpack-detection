@@ -59,6 +59,11 @@ public final class FakePlayerCollector {
 
     /** 从磁盘读到的离线玩家/假人数据，以 UUID 作 key 写入（避免与在线假人名字冲突）。 */
     public static void putOffline(String key, FakePlayerData data) {
+        // 若该 UUID 之前已记录过真名（在线时记录），保留真名，只更新背包
+        FakePlayerData existing = CACHE.get(key);
+        if (existing != null && existing.name() != null && !existing.name().isEmpty()) {
+            data = new FakePlayerData(existing.name(), data.slots());
+        }
         CACHE.put(key, data);
     }
 

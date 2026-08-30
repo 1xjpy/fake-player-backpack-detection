@@ -160,7 +160,7 @@ public class FakeInspectorMod implements ModInitializer {
                                 for (Tag t : inv) {
                                     CompoundTag c = (CompoundTag) t;
                                     String id = c.getString("id").orElse("");
-                                    int count = c.getInt("Count").orElse(1);
+                                    int count = c.getInt("count").orElse(1);
                                     if (id == null || id.isEmpty()) {
                                         continue;
                                     }
