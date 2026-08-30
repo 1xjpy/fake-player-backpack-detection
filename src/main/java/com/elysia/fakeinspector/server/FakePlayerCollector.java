@@ -41,7 +41,7 @@ public final class FakePlayerCollector {
                     continue;
                 }
                 FakePlayerData data = buildFrom(player);
-                CACHE.put(data.name(), data);
+                CACHE.put(player.getUUID().toString(), data);
             }
         }
         return new ArrayList<>(CACHE.values());
