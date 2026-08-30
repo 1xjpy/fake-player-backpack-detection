@@ -31,7 +31,7 @@
 | 1.21.10 | `-mc1.21.10.jar` | Yarn | 21 |
 | 1.21.11 | `-mc1.21.11.jar` | Yarn | 21 |
 
-> 举例：你是 1.21.4，就下 `fake-player-inspector-1.0.2-mc1.21.4.jar`。
+> 举例：你是 1.21.4，就下 `fake-player-inspector-1.0.3-mc1.21.4.jar`。
 ## 功能
 
 - **进游戏自动读取**：进入世界自动扫描 `players\data\*.dat`，读取所有历史假人背包。
@@ -64,7 +64,7 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 gradle build
 ```
 
-构建产物在 `build\libs\fake-player-inspector-1.0.2.jar`。不同版本请用对应的 Yarn/Mojang 映射与 Gradle 配置。
+构建产物在 `build\libs\fake-player-inspector-1.0.3.jar`。不同版本请用对应的 Yarn/Mojang 映射与 Gradle 配置。
 
 ## 数据文件
 
