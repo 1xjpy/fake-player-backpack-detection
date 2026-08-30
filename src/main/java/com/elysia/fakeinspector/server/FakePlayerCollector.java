@@ -12,40 +12,56 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-/** 服务端：收集所有地毯假人的名字与背包内容。 */
+/**
+ * 服务端：收集所有地毯假人的名字与背包内容。
+ * 使用快照缓存：只要某个假人出现过，就记下它的背包；
+ * 之后即使它离线 / 暂不在玩家列表，也能查询到最近一次的背包。
+ */
 public final class FakePlayerCollector {
+
+    private static final Map<String, FakePlayerData> CACHE = new ConcurrentHashMap<>();
 
     private FakePlayerCollector() {
     }
 
     public static List<FakePlayerData> collect(MinecraftServer server) {
-        List<FakePlayerData> result = new ArrayList<>();
-        if (server == null) {
-            return result;
+        if (server != null) {
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                if (!FakePlayerDetector.isFakePlayer(player)) {
+                    continue;
+                }
+                FakePlayerData data = buildFrom(player);
+                CACHE.put(data.name(), data);
+            }
         }
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (!FakePlayerDetector.isFakePlayer(player)) {
-                continue;
-            }
-            List<FakeSlot> slots = new ArrayList<>();
-            Inventory inv = player.getInventory();
+        return new ArrayList<>(CACHE.values());
+    }
 
-            // 主背包 0-35
-            NonNullList<ItemStack> main = inv.getNonEquipmentItems();
-            for (int i = 0; i < main.size(); i++) {
-                addSlot(slots, i, main.get(i));
-            }
-            // 护甲 36-39
-            for (int i = 36; i <= 39; i++) {
-                addSlot(slots, i, inv.getItem(i));
-            }
-            // 副手 40
-            addSlot(slots, 40, inv.getItem(Inventory.SLOT_OFFHAND));
+    /** 清空缓存（服务器停止等场景可调用）。 */
+    public static void clear() {
+        CACHE.clear();
+    }
 
-            result.add(new FakePlayerData(player.getScoreboardName(), slots));
+    private static FakePlayerData buildFrom(ServerPlayer player) {
+        List<FakeSlot> slots = new ArrayList<>();
+        Inventory inv = player.getInventory();
+
+        // 主背包 0-35
+        NonNullList<ItemStack> main = inv.getNonEquipmentItems();
+        for (int i = 0; i < main.size(); i++) {
+            addSlot(slots, i, main.get(i));
         }
-        return result;
+        // 护甲 36-39
+        for (int i = 36; i <= 39; i++) {
+            addSlot(slots, i, inv.getItem(i));
+        }
+        // 副手 40
+        addSlot(slots, 40, inv.getItem(Inventory.SLOT_OFFHAND));
+
+        return new FakePlayerData(player.getScoreboardName(), slots);
     }
 
     private static void addSlot(List<FakeSlot> slots, int index, ItemStack stack) {
