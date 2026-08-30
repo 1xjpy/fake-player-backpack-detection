@@ -40,6 +40,21 @@ public final class FakePlayerCollector {
         return new ArrayList<>(CACHE.values());
     }
 
+    /** 从文件加载缓存（服务器启动时调用）。 */
+    public static void load(List<FakePlayerData> data) {
+        CACHE.clear();
+        if (data != null) {
+            for (FakePlayerData d : data) {
+                CACHE.put(d.name(), d);
+            }
+        }
+    }
+
+    /** 获取当前缓存快照（用于写回文件 / 发送给客户端）。 */
+    public static List<FakePlayerData> snapshot() {
+        return new ArrayList<>(CACHE.values());
+    }
+
     /** 清空缓存（服务器停止等场景可调用）。 */
     public static void clear() {
         CACHE.clear();
