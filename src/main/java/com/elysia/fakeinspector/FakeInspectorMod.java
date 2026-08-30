@@ -268,8 +268,7 @@ public class FakeInspectorMod implements ModInitializer {
                                 boolean isFake = knownFakeUuids.contains(uuidStr)
                                         || uu.version() == 3
                                         || (resolvedName != null
-                                            && (spawnedBotNames.contains(resolvedName)
-                                                || !knownRealUuids.contains(uuidStr)));
+                                            && spawnedBotNames.contains(resolvedName));
                                 if (!isFake) {
                                     return;
                                 }
