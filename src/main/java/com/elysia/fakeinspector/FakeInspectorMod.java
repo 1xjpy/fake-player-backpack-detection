@@ -223,6 +223,14 @@ public class FakeInspectorMod implements ModInitializer {
                                 if (online.contains(uu)) {
                                     return;
                                 }
+                                // 先检测是否为假人：有名字/确认过/离线UUID(v3)
+                                boolean isFake = knownNames.containsKey(uuidStr)
+                                        || knownFakeUuids.contains(uuidStr)
+                                        || uu.version() == 3;
+                                if (!isFake) {
+                                    return;
+                                }
+                                // 后遍历：读取该假人的背包
                                 CompoundTag tag = NbtIo.readCompressed(f, NbtAccounter.unlimitedHeap());
                                 ListTag inv = tag.getListOrEmpty("Inventory");
                                 List<FakeSlot> slots = new ArrayList<>();
