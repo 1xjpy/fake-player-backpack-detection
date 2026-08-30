@@ -161,6 +161,8 @@ public class FakeInspectorMod implements ModInitializer {
 
     /** 从当前世界的 players\\data 读取所有离线玩家/假人的背包。 */
     private static void loadOfflineFromDisk(MinecraftServer server) {
+        // 进入新世界时先清空旧数据，避免上个世界的假人残留
+        FakePlayerCollector.clear();
         try {
             Path dir = server.getWorldPath(LevelResource.PLAYER_DATA_DIR);
             if (!Files.exists(dir)) {
