@@ -51,16 +51,21 @@ public class FakeInspectorMod implements ModInitializer {
             FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector-events.log");
     private static final Path NAMES_FILE =
             FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector-names.json");
+    private static final Path FAKE_FILE =
+            FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector-fake.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type DATA_TYPE = new TypeToken<List<FakePlayerData>>() {
     }.getType();
     private static final Type NAMES_TYPE = new TypeToken<Map<String, String>>() {
+    }.getType();
+    private static final Type FAKE_TYPE = new TypeToken<Set<String>>() {
     }.getType();
 
     private int tickCounter = 0;
     private static List<FakePlayerData> lastSaved = List.of();
     private static final Map<String, String> lastOnline = new HashMap<>();
     private static final Map<String, String> knownNames = new HashMap<>();
+    private static final Set<String> knownFakeUuids = new HashSet<>();
 
     @Override
     public void onInitialize() {
@@ -116,6 +121,15 @@ public class FakeInspectorMod implements ModInitializer {
                 appendEvent("kill", e.getValue(), e.getKey());
             }
         }
+        boolean fakeDirty = false;
+        for (String uuid : now.keySet()) {
+            if (knownFakeUuids.add(uuid)) {
+                fakeDirty = true;
+            }
+        }
+        if (fakeDirty) {
+            saveFakeUuids();
+        }
         boolean nameDirty = false;
         for (Map.Entry<String, String> e : now.entrySet()) {
             if (knownNames.putIfAbsent(e.getKey(), e.getValue()) == null) {
@@ -159,6 +173,18 @@ public class FakeInspectorMod implements ModInitializer {
         }
     }
 
+    private static void saveFakeUuids() {
+        try {
+            Path parent = FAKE_FILE.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(FAKE_FILE, GSON.toJson(knownFakeUuids, FAKE_TYPE), StandardCharsets.UTF_8);
+        } catch (Exception ignored) {
+            // 忽略
+        }
+    }
+
     /** 从当前世界的 players\\data 读取所有离线玩家/假人的背包。 */
     private static void loadOfflineFromDisk(MinecraftServer server) {
         // 进入新世界时先清空旧数据，避免上个世界的假人残留
@@ -180,6 +206,9 @@ public class FakeInspectorMod implements ModInitializer {
                             try {
                                 UUID uu = UUID.fromString(uuidStr);
                                 if (online.contains(uu)) {
+                                    return;
+                                }
+                                if (!knownFakeUuids.contains(uuidStr)) {
                                     return;
                                 }
                                 CompoundTag tag = NbtIo.readCompressed(f, NbtAccounter.unlimitedHeap());
@@ -213,6 +242,15 @@ public class FakeInspectorMod implements ModInitializer {
 
     /** 从事件日志恢复 uuid -> 假人真名 映射。 */
     private static void loadKnownNames() {
+        try {
+            if (Files.exists(FAKE_FILE)) {
+                Set<String> s = GSON.fromJson(Files.readString(FAKE_FILE, StandardCharsets.UTF_8), FAKE_TYPE);
+                if (s != null) {
+                    knownFakeUuids.addAll(s);
+                }
+            }
+        } catch (Exception ignored) {
+        }
         // 先加载持久化的 uuid -> 名字
         try {
             if (Files.exists(NAMES_FILE)) {
