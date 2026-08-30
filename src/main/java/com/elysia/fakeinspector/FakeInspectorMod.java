@@ -5,6 +5,7 @@ import com.elysia.fakeinspector.networking.FakePlayerQueryPayload;
 import com.elysia.fakeinspector.networking.FakePlayerResponsePayload;
 import com.elysia.fakeinspector.networking.FakeSlot;
 import com.elysia.fakeinspector.server.FakePlayerCollector;
+import com.elysia.fakeinspector.util.FakePlayerDetector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -28,9 +29,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -41,12 +46,15 @@ public class FakeInspectorMod implements ModInitializer {
 
     private static final Path DATA_FILE =
             FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector.json");
+    private static final Path EVENT_FILE =
+            FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector-events.log");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type DATA_TYPE = new TypeToken<List<FakePlayerData>>() {
     }.getType();
 
     private int tickCounter = 0;
     private static List<FakePlayerData> lastSaved = List.of();
+    private static final Map<String, String> lastOnline = new HashMap<>();
     private boolean diskLoaded = false;
 
     @Override
@@ -71,6 +79,7 @@ public class FakeInspectorMod implements ModInitializer {
             }
             if (++tickCounter >= 20) {
                 tickCounter = 0;
+                recordFakePlayerEvents(server);
                 List<FakePlayerData> now = FakePlayerCollector.collect(server);
                 if (!FakePlayerCollector.sameData(lastSaved, now)) {
                     lastSaved = now;
@@ -83,6 +92,46 @@ public class FakeInspectorMod implements ModInitializer {
                 }
             }
         });
+    }
+
+    /** 用周期对比记录假人出现（spawn）与消失（kill）。 */
+    private static void recordFakePlayerEvents(MinecraftServer server) {
+        Map<String, String> now = new HashMap<>();
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            if (FakePlayerDetector.isFakePlayer(p)) {
+                now.put(p.getStringUUID(), p.getScoreboardName());
+            }
+        }
+        for (Map.Entry<String, String> e : now.entrySet()) {
+            if (!lastOnline.containsKey(e.getKey())) {
+                appendEvent("spawn", e.getValue(), e.getKey());
+            }
+        }
+        for (Map.Entry<String, String> e : lastOnline.entrySet()) {
+            if (!now.containsKey(e.getKey())) {
+                appendEvent("kill", e.getValue(), e.getKey());
+            }
+        }
+        lastOnline.clear();
+        lastOnline.putAll(now);
+    }
+
+    private static void appendEvent(String type, String name, String uuid) {
+        String line = Instant.now().toString()
+                + "\t" + type
+                + "\t" + name
+                + "\t" + uuid
+                + "\tplayers/data/" + uuid + ".dat";
+        try {
+            Path parent = EVENT_FILE.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(EVENT_FILE, line + "\n", StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (Exception ignored) {
+            // 忽略写入失败
+        }
     }
 
     /** 从当前世界的 players\\data 读取所有离线玩家/假人的背包。 */
