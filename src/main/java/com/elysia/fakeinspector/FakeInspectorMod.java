@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -60,7 +61,6 @@ public class FakeInspectorMod implements ModInitializer {
     private static List<FakePlayerData> lastSaved = List.of();
     private static final Map<String, String> lastOnline = new HashMap<>();
     private static final Map<String, String> knownNames = new HashMap<>();
-    private boolean diskLoaded = false;
 
     @Override
     public void onInitialize() {
@@ -76,11 +76,10 @@ public class FakeInspectorMod implements ModInitializer {
             });
         });
 
+        // 每次进入世界（服务器启动）都重新读该世界的玩家数据
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> loadOfflineFromDisk(server));
+
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            if (!diskLoaded) {
-                diskLoaded = true;
-                loadOfflineFromDisk(server);
-            }
             if (++tickCounter >= 20) {
                 tickCounter = 0;
                 recordFakePlayerEvents(server);
