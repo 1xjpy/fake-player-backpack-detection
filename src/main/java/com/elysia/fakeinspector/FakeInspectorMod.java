@@ -223,10 +223,6 @@ public class FakeInspectorMod implements ModInitializer {
                                 if (online.contains(uu)) {
                                     return;
                                 }
-                                // 只显示离线 UUID(v3=地毯假人)；真实玩家的随机 UUID(v4)跳过
-                                if (uu.version() != 3) {
-                                    return;
-                                }
                                 CompoundTag tag = NbtIo.readCompressed(f, NbtAccounter.unlimitedHeap());
                                 ListTag inv = tag.getListOrEmpty("Inventory");
                                 List<FakeSlot> slots = new ArrayList<>();
