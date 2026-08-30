@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +54,18 @@ public final class FakePlayerCollector {
     /** 获取当前缓存快照（用于写回文件 / 发送给客户端）。 */
     public static List<FakePlayerData> snapshot() {
         return new ArrayList<>(CACHE.values());
+    }
+
+    /** 判断两份数据是否一致（忽略顺序）。 */
+    public static boolean sameData(List<FakePlayerData> a, List<FakePlayerData> b) {
+        if (a == null || b == null) {
+            return a == b;
+        }
+        java.util.List<FakePlayerData> sortedA =
+                a.stream().sorted(Comparator.comparing(FakePlayerData::name)).toList();
+        java.util.List<FakePlayerData> sortedB =
+                b.stream().sorted(Comparator.comparing(FakePlayerData::name)).toList();
+        return sortedA.equals(sortedB);
     }
 
     /** 清空缓存（服务器停止等场景可调用）。 */

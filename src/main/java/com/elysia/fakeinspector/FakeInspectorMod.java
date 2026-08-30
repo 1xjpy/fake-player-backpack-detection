@@ -32,6 +32,7 @@ public class FakeInspectorMod implements ModInitializer {
     }.getType();
 
     private int tickCounter = 0;
+    private static List<FakePlayerData> lastSaved = List.of();
 
     @Override
     public void onInitialize() {
@@ -48,12 +49,15 @@ public class FakeInspectorMod implements ModInitializer {
             });
         });
 
-        // 服务端定期记录假人背包（每 20 tick ≈ 1 秒），并定期写入本地文件
+        // 服务端轻量检查假人背包；仅在数据变化（放入物品/新增假人）时写一次文件
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (++tickCounter >= 20) {
                 tickCounter = 0;
-                FakePlayerCollector.collect(server);
-                saveToFile();
+                List<FakePlayerData> now = FakePlayerCollector.collect(server);
+                if (!FakePlayerCollector.sameData(lastSaved, now)) {
+                    lastSaved = now;
+                    saveToFile();
+                }
             }
         });
     }
