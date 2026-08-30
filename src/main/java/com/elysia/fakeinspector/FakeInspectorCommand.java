@@ -1,7 +1,9 @@
 package com.elysia.fakeinspector;
 
 import com.elysia.fakeinspector.networking.FakePlayerData;
+import com.elysia.fakeinspector.networking.FakeSlot;
 import com.elysia.fakeinspector.server.FakePlayerCollector;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -32,7 +34,36 @@ public final class FakeInspectorCommand {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 dispatcher.register(Commands.literal("fpi")
                         .executes(FakeInspectorCommand::list)
-                        .then(Commands.literal("list").executes(FakeInspectorCommand::list))));
+                        .then(Commands.literal("list").executes(FakeInspectorCommand::list))
+                        .then(Commands.argument("target", StringArgumentType.word())
+                                .executes(ctx -> backpack(ctx, StringArgumentType.getString(ctx, "target"))))));
+    }
+
+    private static int backpack(CommandContext<CommandSourceStack> ctx, String target) {
+        CommandSourceStack src = ctx.getSource();
+        Map<String, FakePlayerData> entries = FakePlayerCollector.entries();
+        for (Map.Entry<String, FakePlayerData> e : entries.entrySet()) {
+            FakePlayerData data = e.getValue();
+            String uuid = e.getKey();
+            boolean match = data.name().equalsIgnoreCase(target)
+                    || uuid.equalsIgnoreCase(target)
+                    || uuid.startsWith(target)
+                    || data.name().contains(target);
+            if (match) {
+                src.sendSuccess(() -> Component.literal("[FakePlayerInspector] " + data.name() + " 的背包："), false);
+                List<FakeSlot> slots = data.slots();
+                if (slots.isEmpty()) {
+                    src.sendSuccess(() -> Component.literal("  （空背包）"), false);
+                } else {
+                    for (FakeSlot s : slots) {
+                        src.sendSuccess(() -> Component.literal("  " + s.itemId() + " x" + s.count()), false);
+                    }
+                }
+                return 1;
+            }
+        }
+        src.sendSuccess(() -> Component.literal("[FakePlayerInspector] 未找到假人: " + target), false);
+        return 1;
     }
 
     private static int list(CommandContext<CommandSourceStack> ctx) {
