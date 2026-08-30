@@ -32,21 +32,37 @@ public final class FakeInspectorCommand {
     }
 
     public static void register() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-                dispatcher.register(Commands.literal("fpi")
-                        .executes(FakeInspectorCommand::list)
-                        .then(Commands.literal("list").executes(FakeInspectorCommand::list))
-                        .then(Commands.literal("auto")
-                                .then(Commands.argument("state", BoolArgumentType.bool())
-                                        .executes(ctx -> {
-                                            boolean enabled = BoolArgumentType.getBool(ctx, "state");
-                                            FakeInspectorMod.setAutoRead(enabled);
-                                            ctx.getSource().sendSuccess(() -> Component.literal(
-                                                    "[FakePlayerInspector] 后台读取已" + (enabled ? "开启" : "关闭")), false);
-                                            return 1;
-                                        })))
-                        .then(Commands.argument("target", StringArgumentType.word())
-                                .executes(ctx -> backpack(ctx, StringArgumentType.getString(ctx, "target"))))));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(Commands.literal("fpi")
+                    .executes(FakeInspectorCommand::list)
+                    .then(Commands.literal("list").executes(FakeInspectorCommand::list))
+                    .then(Commands.literal("auto")
+                            .then(Commands.argument("state", BoolArgumentType.bool())
+                                    .executes(ctx -> {
+                                        boolean enabled = BoolArgumentType.getBool(ctx, "state");
+                                        FakeInspectorMod.setAutoRead(enabled);
+                                        ctx.getSource().sendSuccess(() -> Component.literal(
+                                                "[FakePlayerInspector] 后台读取已" + (enabled ? "开启" : "关闭")), false);
+                                        return 1;
+                                    })))
+                    .then(Commands.argument("target", StringArgumentType.word())
+                            .executes(ctx -> backpack(ctx, StringArgumentType.getString(ctx, "target")))));
+
+            // 地毯风格开关：/carpet lokpkk true/false
+            var carpetNode = dispatcher.getRoot().getChild("carpet");
+            if (carpetNode != null) {
+                carpetNode.addChild(Commands.literal("lokpkk")
+                        .then(Commands.argument("state", BoolArgumentType.bool())
+                                .executes(ctx -> {
+                                    boolean enabled = BoolArgumentType.getBool(ctx, "state");
+                                    FakeInspectorMod.setAutoRead(enabled);
+                                    ctx.getSource().sendSuccess(() -> Component.literal(
+                                            "[FakePlayerInspector] 后台读取已" + (enabled ? "开启" : "关闭")), false);
+                                    return 1;
+                                }))
+                        .build());
+            }
+        });
     }
 
     private static int backpack(CommandContext<CommandSourceStack> ctx, String target) {
