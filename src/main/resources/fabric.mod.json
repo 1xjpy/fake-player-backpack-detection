@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "fake-player-inspector",
+  "version": "${version}",
+  "name": "Fake Player Inspector",
+  "description": "查看地毯模组假人的名字与背包内容，兼容 JEI / REI / EMI。",
+  "authors": ["Elysia"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.elysia.fakeinspector.FakeInspectorMod"],
+    "client": ["com.elysia.fakeinspector.client.FakeInspectorClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~26.1.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "carpet": "*",
+    "jei": "*",
+    "roughlyenoughitems": "*",
+    "emi": "*"
+  }
+}
