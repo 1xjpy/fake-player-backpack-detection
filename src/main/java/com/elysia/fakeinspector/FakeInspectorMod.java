@@ -55,10 +55,12 @@ public class FakeInspectorMod implements ModInitializer {
     private int tickCounter = 0;
     private static List<FakePlayerData> lastSaved = List.of();
     private static final Map<String, String> lastOnline = new HashMap<>();
+    private static final Map<String, String> knownNames = new HashMap<>();
     private boolean diskLoaded = false;
 
     @Override
     public void onInitialize() {
+        loadKnownNames();
         PayloadTypeRegistry.serverboundPlay().register(FakePlayerQueryPayload.TYPE, FakePlayerQueryPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(FakePlayerResponsePayload.TYPE, FakePlayerResponsePayload.STREAM_CODEC);
 
@@ -170,7 +172,8 @@ public class FakeInspectorMod implements ModInitializer {
                                     slots.add(new FakeSlot(idx++, id, count));
                                 }
                                 String shortName = uuidStr.length() >= 8 ? uuidStr.substring(0, 8) : uuidStr;
-                                FakePlayerCollector.putOffline(uuidStr, new FakePlayerData(shortName, slots));
+                                String name = knownNames.getOrDefault(uuidStr, shortName);
+                                FakePlayerCollector.putOffline(uuidStr, new FakePlayerData(name, slots));
                             } catch (Exception ignored) {
                                 // 单个文件失败不影响其它
                             }
@@ -178,6 +181,22 @@ public class FakeInspectorMod implements ModInitializer {
             }
         } catch (Exception ignored) {
             // 读取失败忽略
+        }
+    }
+
+    /** 从事件日志恢复 uuid -> 假人真名 映射。 */
+    private static void loadKnownNames() {
+        try {
+            if (Files.exists(EVENT_FILE)) {
+                for (String line : Files.readAllLines(EVENT_FILE, StandardCharsets.UTF_8)) {
+                    String[] parts = line.split("\t");
+                    if (parts.length >= 4) {
+                        knownNames.putIfAbsent(parts[3], parts[2]);
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略
         }
     }
 
