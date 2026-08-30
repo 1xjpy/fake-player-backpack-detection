@@ -52,6 +52,7 @@ public final class FakeInspectorCommand {
             var carpetNode = dispatcher.getRoot().getChild("carpet");
             if (carpetNode != null) {
                 carpetNode.addChild(Commands.literal("lokpkk")
+                        .executes(FakeInspectorCommand::lokpkkHelp)
                         .then(Commands.argument("state", BoolArgumentType.bool())
                                 .executes(ctx -> {
                                     boolean enabled = BoolArgumentType.getBool(ctx, "state");
@@ -63,6 +64,19 @@ public final class FakeInspectorCommand {
                         .build());
             }
         });
+    }
+
+    private static int lokpkkHelp(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack src = ctx.getSource();
+        boolean auto = FakeInspectorMod.isAutoRead();
+        src.sendSuccess(() -> Component.literal("[FakePlayerInspector] 假人背包查看器"), false);
+        src.sendSuccess(() -> Component.literal("  当前后台读取: " + (auto ? "开启" : "关闭")), false);
+        src.sendSuccess(() -> Component.literal("  可用指令："), false);
+        src.sendSuccess(() -> Component.literal("    /fpi                    查看假人列表"), false);
+        src.sendSuccess(() -> Component.literal("    /fpi <假人名>           查看某假人背包"), false);
+        src.sendSuccess(() -> Component.literal("    /fpi auto true/false    后台读取开关"), false);
+        src.sendSuccess(() -> Component.literal("    /carpet lokpkk true/false   后台读取开关"), false);
+        return 1;
     }
 
     private static int backpack(CommandContext<CommandSourceStack> ctx, String target) {
