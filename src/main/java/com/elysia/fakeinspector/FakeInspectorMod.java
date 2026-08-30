@@ -198,6 +198,27 @@ public class FakeInspectorMod implements ModInitializer {
         } catch (Exception ignored) {
             // 忽略
         }
+        // 从命令历史恢复 /player <名字> spawn 的名字 -> 离线 UUID
+        try {
+            Path cmd = FabricLoader.getInstance().getGameDir().resolve("command_history.txt");
+            if (Files.exists(cmd)) {
+                for (String line : Files.readAllLines(cmd, StandardCharsets.UTF_8)) {
+                    String raw = line.trim();
+                    if (raw.startsWith("/player ")) {
+                        String[] parts = raw.split("\\s+");
+                        if (parts.length >= 2) {
+                            String name = parts[1];
+                            if (!name.isBlank()) {
+                                UUID uu = UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8));
+                                knownNames.putIfAbsent(uu.toString(), name);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略
+        }
     }
 
     private static void loadFromFile() {
