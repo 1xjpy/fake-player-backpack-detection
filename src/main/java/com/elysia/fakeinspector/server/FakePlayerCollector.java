@@ -3,6 +3,9 @@ package com.elysia.fakeinspector.server;
 import com.elysia.fakeinspector.networking.FakePlayerData;
 import com.elysia.fakeinspector.networking.FakeSlot;
 import com.elysia.fakeinspector.util.FakePlayerDetector;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -11,6 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.component.TypedEntityData;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -113,19 +117,44 @@ public final class FakePlayerCollector {
         if (depth > 3) {
             return;
         }
+        // 普通容器组件（如束袋等）
         ItemContainerContents container = stack.get(DataComponents.CONTAINER);
         if (container == null) {
-            return;
-        }
-        int i = 0;
-        for (ItemStack inner : container.nonEmptyItemCopyStream().toList()) {
-            if (inner != null && !inner.isEmpty()) {
-                String id = BuiltInRegistries.ITEM.getKey(inner.getItem()).toString();
-                int slotIndex = base + 1000 + i;
-                slots.add(new FakeSlot(slotIndex, id, inner.getCount()));
-                collectContainerContents(slots, slotIndex, inner, depth + 1);
+            // 继续检查潜影盒等块实体容器
+        } else {
+            int i = 0;
+            for (ItemStack inner : container.nonEmptyItemCopyStream().toList()) {
+                if (inner != null && !inner.isEmpty()) {
+                    int slotIndex = base + 1000 + i;
+                    addContainerStack(slots, slotIndex, inner, depth);
+                }
+                i++;
             }
-            i++;
         }
+        // 潜影盒等块实体容器：内容在 BLOCK_ENTITY_DATA 的 NBT 的 "Items" 里
+        TypedEntityData<?> entityData = stack.get(DataComponents.BLOCK_ENTITY_DATA);
+        if (entityData != null) {
+            CompoundTag nbt = entityData.getUnsafe();
+            if (nbt != null) {
+                ListTag items = nbt.getListOrEmpty("Items");
+                int i = 0;
+                for (Tag t : items) {
+                    if (t instanceof CompoundTag c) {
+                        String id = c.getString("id").orElse("");
+                        int count = c.getInt("Count").orElse(1);
+                        if (!id.isEmpty()) {
+                            slots.add(new FakeSlot(base + 1000 + i, id, count));
+                        }
+                        i++;
+                    }
+                }
+            }
+        }
+    }
+
+    private static void addContainerStack(List<FakeSlot> slots, int slotIndex, ItemStack inner, int depth) {
+        String id = BuiltInRegistries.ITEM.getKey(inner.getItem()).toString();
+        slots.add(new FakeSlot(slotIndex, id, inner.getCount()));
+        collectContainerContents(slots, slotIndex, inner, depth + 1);
     }
 }
