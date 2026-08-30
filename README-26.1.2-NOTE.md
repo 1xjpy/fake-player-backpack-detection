@@ -2,7 +2,7 @@
 
 ## 目标
 
-为 **Minecraft 26.1.2** 编译 Fake Player Backpack Inspector（假人背包检测）模组。
+为 **Minecraft 26.1.2** 编译 Fake Player Backpack Detection（假人背包检测）模组。
 
 ## 当前状态（2026-08-30）
 

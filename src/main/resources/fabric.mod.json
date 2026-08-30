@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "fake-player-inspector",
   "version": "${version}",
-  "name": "Fake Player Backpack Inspector",
+  "name": "Fake Player Backpack Detection",
   "description": "假人背包检测：查看地毯模组假人的名字与背包内容，兼容 JEI / REI / EMI。",
   "authors": ["Elysia"],
   "license": "MIT",
