@@ -4,11 +4,13 @@ import com.elysia.fakeinspector.networking.FakePlayerData;
 import com.elysia.fakeinspector.networking.FakeSlot;
 import com.elysia.fakeinspector.util.FakePlayerDetector;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ContainerComponent;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -98,5 +100,27 @@ public final class FakePlayerCollector {
         }
         String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
         slots.add(new FakeSlot(index, id, stack.getCount()));
+        collectContainerContents(slots, index, stack, 0);
+    }
+
+    /** 递归统计容器（潜影盒/箱子等）内部的物品。 */
+    private static void collectContainerContents(List<FakeSlot> slots, int base, ItemStack stack, int depth) {
+        if (depth > 3) {
+            return;
+        }
+        ContainerComponent container = stack.get(DataComponents.CONTAINER);
+        if (container == null) {
+            return;
+        }
+        int i = 0;
+        for (ItemStack inner : container) {
+            if (inner != null && !inner.isEmpty()) {
+                String id = BuiltInRegistries.ITEM.getKey(inner.getItem()).toString();
+                int slotIndex = base + 1000 + i;
+                slots.add(new FakeSlot(slotIndex, id, inner.getCount()));
+                collectContainerContents(slots, slotIndex, inner, depth + 1);
+            }
+            i++;
+        }
     }
 }
