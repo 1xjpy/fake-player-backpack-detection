@@ -2,7 +2,7 @@
 
 ## 目标
 
-为 **Minecraft 26.1.2** 编译 Fake Player Inspector 模组。
+为 **Minecraft 26.1.2** 编译 Fake Player Backpack Inspector（假人背包检测）模组。
 
 ## 当前状态（2026-08-30）
 
@@ -50,4 +50,3 @@ fabric_version=<1.21.11 对应的 fabric api>
 
 并把 `build.gradle` 的 `mappings loom.officialMojangMappings()` 改回
 `mappings "net.fabricmc:yarn:<1.21.11+build>:v2"`，Java 目标保持 21。
-

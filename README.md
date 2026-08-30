@@ -1,4 +1,6 @@
-# Fake Player Inspector
+# Fake Player Backpack Inspector
+
+> 假人背包检测 · 背包容量查看 · 假人背包检查
 
 一个给 Minecraft Java 版用的 Fabric 客户端/服务端模组，用来**查看地毯模组（Carpet）假人的名字与背包内容**。
 

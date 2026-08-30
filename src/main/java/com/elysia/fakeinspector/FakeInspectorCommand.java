@@ -44,7 +44,7 @@ public final class FakeInspectorCommand {
                                         boolean enabled = BoolArgumentType.getBool(ctx, "state");
                                         FakeInspectorMod.setAutoRead(enabled);
                                         ctx.getSource().sendSuccess(() -> Component.literal(
-                                                "[FakePlayerInspector] 后台读取已" + (enabled ? "开启" : "关闭")), false);
+                                                "[假人背包检测] 后台读取已" + (enabled ? "开启" : "关闭")), false);
                                         return 1;
                                     })))
                     .then(Commands.literal("display")
@@ -56,7 +56,7 @@ public final class FakeInspectorCommand {
                                             ServerPlayNetworking.send(player, new FakePlayerDisplayPayload(enabled));
                                         }
                                         ctx.getSource().sendSuccess(() -> Component.literal(
-                                                "[FakePlayerInspector] 悬停显示假人背包已" + (enabled ? "开启" : "关闭")), false);
+                                                "[假人背包检测] 悬停显示假人背包已" + (enabled ? "开启" : "关闭")), false);
                                         return 1;
                                     })))
                     .then(Commands.argument("target", StringArgumentType.word())
@@ -67,7 +67,7 @@ public final class FakeInspectorCommand {
     private static int lokpkkHelp(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack src = ctx.getSource();
         boolean auto = FakeInspectorMod.isAutoRead();
-        src.sendSuccess(() -> Component.literal("[FakePlayerInspector] 假人背包查看器"), false);
+        src.sendSuccess(() -> Component.literal("[假人背包检测] 假人背包查看器"), false);
         src.sendSuccess(() -> Component.literal("  当前后台读取: " + (auto ? "开启" : "关闭")), false);
         src.sendSuccess(() -> Component.literal("  可用指令："), false);
         src.sendSuccess(() -> Component.literal("    /fpi                    查看假人列表"), false);
@@ -88,7 +88,7 @@ public final class FakeInspectorCommand {
                     || uuid.startsWith(target)
                     || data.name().contains(target);
             if (match) {
-                src.sendSuccess(() -> Component.literal("[FakePlayerInspector] " + data.name() + " 的背包："), false);
+                src.sendSuccess(() -> Component.literal("[假人背包检测] " + data.name() + " 的背包："), false);
                 List<FakeSlot> slots = data.slots();
                 if (slots.isEmpty()) {
                     src.sendSuccess(() -> Component.literal("  （空背包）"), false);
@@ -100,7 +100,7 @@ public final class FakeInspectorCommand {
                 return 1;
             }
         }
-        src.sendSuccess(() -> Component.literal("[FakePlayerInspector] 未找到假人: " + target), false);
+        src.sendSuccess(() -> Component.literal("[假人背包检测] 未找到假人: " + target), false);
         return 1;
     }
 
@@ -130,7 +130,7 @@ public final class FakeInspectorCommand {
 
         Map<String, FakePlayerData> entries = FakePlayerCollector.entries();
         if (entries.isEmpty()) {
-            src.sendSuccess(() -> Component.literal("[FakePlayerInspector] 暂无假人数据"), false);
+            src.sendSuccess(() -> Component.literal("[假人背包检测] 暂无假人数据"), false);
             return 1;
         }
         for (Map.Entry<String, FakePlayerData> e : entries.entrySet()) {
@@ -141,7 +141,7 @@ public final class FakeInspectorCommand {
             String act = (action != null) ? (action[0] + "  " + action[1]) : "(无行为记录)";
             String line = "[" + data.name() + "]  " + uuid + "  " + status + "  最近: " + act
                     + "  存档: players/data/" + uuid + ".dat";
-            src.sendSuccess(() -> Component.literal("[FakePlayerInspector] " + line), false);
+            src.sendSuccess(() -> Component.literal("[假人背包检测] " + line), false);
         }
         return 1;
     }
