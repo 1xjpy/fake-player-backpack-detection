@@ -1,6 +1,7 @@
 package com.elysia.fakeinspector;
 
 import com.elysia.fakeinspector.networking.FakePlayerData;
+import com.elysia.fakeinspector.networking.FakePlayerDisplayPayload;
 import com.elysia.fakeinspector.networking.FakePlayerQueryPayload;
 import com.elysia.fakeinspector.networking.FakePlayerResponsePayload;
 import com.elysia.fakeinspector.networking.FakeSlot;
@@ -8,6 +9,10 @@ import com.elysia.fakeinspector.server.FakePlayerCollector;
 import com.elysia.fakeinspector.util.FakePlayerDetector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -53,6 +58,8 @@ public class FakeInspectorMod implements ModInitializer {
             FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector-names.json");
     private static final Path FAKE_FILE =
             FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector-fake.json");
+    private static final Path REAL_FILE =
+            FabricLoader.getInstance().getConfigDir().resolve("fake-player-inspector-real.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type DATA_TYPE = new TypeToken<List<FakePlayerData>>() {
     }.getType();
@@ -66,6 +73,12 @@ public class FakeInspectorMod implements ModInitializer {
     private static final Map<String, String> lastOnline = new HashMap<>();
     private static final Map<String, String> knownNames = new HashMap<>();
     private static final Set<String> knownFakeUuids = new HashSet<>();
+    /** 记录过的真实玩家 UUID（用于排除真人）。 */
+    private static final Set<String> knownRealUuids = new HashSet<>();
+    /** usercache.json 里的 uuid -> 名字，用于把 v4 假人的名字显示出来。 */
+    private static final Map<String, String> uuidNameCache = new HashMap<>();
+    /** 在 /player <名字> ... 命令里出现过的名字，视为召唤过的假人。 */
+    private static final Set<String> spawnedBotNames = new HashSet<>();
     private static boolean autoRead = true;
 
     @Override
@@ -74,6 +87,7 @@ public class FakeInspectorMod implements ModInitializer {
         FakeInspectorCommand.register();
         PayloadTypeRegistry.serverboundPlay().register(FakePlayerQueryPayload.TYPE, FakePlayerQueryPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(FakePlayerResponsePayload.TYPE, FakePlayerResponsePayload.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(FakePlayerDisplayPayload.TYPE, FakePlayerDisplayPayload.STREAM_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(FakePlayerQueryPayload.TYPE, (payload, context) -> {
             context.server().execute(() -> {
@@ -118,10 +132,17 @@ public class FakeInspectorMod implements ModInitializer {
     /** 用周期对比记录假人出现（spawn）与消失（kill）。 */
     private static void recordFakePlayerEvents(MinecraftServer server) {
         Map<String, String> now = new HashMap<>();
+        boolean realDirty = false;
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             if (FakePlayerDetector.isFakePlayer(p)) {
                 now.put(p.getStringUUID(), p.getScoreboardName());
+            } else if (knownRealUuids.add(p.getStringUUID())) {
+                // 记录真实玩家（非假人），用于离线读档时把它们排除掉
+                realDirty = true;
             }
+        }
+        if (realDirty) {
+            saveRealUuids();
         }
         for (Map.Entry<String, String> e : now.entrySet()) {
             if (!lastOnline.containsKey(e.getKey())) {
@@ -197,6 +218,18 @@ public class FakeInspectorMod implements ModInitializer {
         }
     }
 
+    private static void saveRealUuids() {
+        try {
+            Path parent = REAL_FILE.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(REAL_FILE, GSON.toJson(knownRealUuids, FAKE_TYPE), StandardCharsets.UTF_8);
+        } catch (Exception ignored) {
+            // 忽略
+        }
+    }
+
     /** 从当前世界的 players\\data 读取所有离线玩家/假人的背包。 */
     private static void loadOfflineFromDisk(MinecraftServer server) {
         if (!autoRead) {
@@ -209,9 +242,12 @@ public class FakeInspectorMod implements ModInitializer {
             if (!Files.exists(dir)) {
                 return;
             }
-            Set<UUID> online = new HashSet<>();
+            // 只跳过在线真人；在线假人仍读取存档，保证自定义假人类也能显示
+            Set<UUID> onlineReal = new HashSet<>();
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-                online.add(p.getUUID());
+                if (!FakePlayerDetector.isFakePlayer(p)) {
+                    onlineReal.add(p.getUUID());
+                }
             }
             try (Stream<Path> files = Files.list(dir)) {
                 files.filter(f -> f.getFileName().toString().endsWith(".dat")
@@ -220,13 +256,20 @@ public class FakeInspectorMod implements ModInitializer {
                             String uuidStr = f.getFileName().toString().replace(".dat", "");
                             try {
                                 UUID uu = UUID.fromString(uuidStr);
-                                if (online.contains(uu)) {
+                                if (onlineReal.contains(uu)) {
                                     return;
                                 }
-                                // 先检测是否为假人：有名字/确认过/离线UUID(v3)
-                                boolean isFake = knownNames.containsKey(uuidStr)
-                                        || knownFakeUuids.contains(uuidStr)
-                                        || uu.version() == 3;
+                                // 名字优先用已记录的真名，其次 usercache -> 真名
+                                String resolvedName = knownNames.get(uuidStr);
+                                if (resolvedName == null) {
+                                    resolvedName = uuidNameCache.get(uuidStr);
+                                }
+                                // 假人判定：确认过 / v3 离线UUID / 查询到名字且不是真人
+                                boolean isFake = knownFakeUuids.contains(uuidStr)
+                                        || uu.version() == 3
+                                        || (resolvedName != null
+                                            && (spawnedBotNames.contains(resolvedName)
+                                                || !knownRealUuids.contains(uuidStr)));
                                 if (!isFake) {
                                     return;
                                 }
@@ -236,18 +279,15 @@ public class FakeInspectorMod implements ModInitializer {
                                 List<FakeSlot> slots = new ArrayList<>();
                                 int idx = 0;
                                 for (Tag t : inv) {
-                                    CompoundTag c = (CompoundTag) t;
-                                    String id = c.getString("id").orElse("");
-                                    int count = c.getInt("count").orElse(1);
-                                    if (id == null || id.isEmpty()) {
+                                    if (!(t instanceof CompoundTag c)) {
                                         continue;
                                     }
-                                    if (count <= 0) {
-                                        count = 1;
-                                    }
-                                    slots.add(new FakeSlot(idx++, id, count));
+                                    // 用真实 Slot 编号作为槽位，和在线读取保持一致
+                                    int base = c.getInt("Slot").orElse(idx);
+                                    addOfflineStack(slots, base, c, 0);
+                                    idx++;
                                 }
-                                String name = knownNames.getOrDefault(uuidStr, "未命名假人");
+                                String name = resolvedName != null ? resolvedName : "未命名假人";
                                 FakePlayerCollector.putOffline(uuidStr, new FakePlayerData(name, slots));
                             } catch (Exception ignored) {
                                 // 单个文件失败不影响其它
@@ -256,6 +296,59 @@ public class FakeInspectorMod implements ModInitializer {
             }
         } catch (Exception ignored) {
             // 读取失败忽略
+        }
+    }
+
+    /**
+     * 离线读档专用：按 NBT 结构递归统计单个物品及其内部容器（潜影盒/束袋等）。
+     * 与在线逻辑保持一致：components.minecraft:container -> List<{slot, item}>，
+     * 旧格式 components.minecraft:block_entity_data -> Items。
+     */
+    private static void addOfflineStack(List<FakeSlot> slots, int base, CompoundTag stack, int depth) {
+        if (stack == null || depth > 4) {
+            return;
+        }
+        String id = stack.getStringOr("id", "");
+        if (id.isEmpty()) {
+            return;
+        }
+        int count = stack.getIntOr("count", 1);
+        if (count <= 0) {
+            count = 1;
+        }
+        slots.add(new FakeSlot(base, id, count));
+
+        CompoundTag comps = stack.getCompoundOrEmpty("components");
+        if (comps == null) {
+            return;
+        }
+        // 现代潜影盒：容器组件是 List<{slot, item}>
+        if (comps.contains("minecraft:container")) {
+            Tag container = comps.get("minecraft:container");
+            if (container instanceof ListTag list) {
+                int i = 0;
+                for (Tag el : list) {
+                    if (el instanceof CompoundTag entry) {
+                        CompoundTag item = entry.getCompoundOrEmpty("item");
+                        addOfflineStack(slots, base + 1000 + i, item, depth + 1);
+                        i++;
+                    }
+                }
+            }
+        }
+        // 旧式潜影盒：block_entity_data -> Items
+        if (comps.contains("minecraft:block_entity_data")) {
+            Tag bed = comps.get("minecraft:block_entity_data");
+            if (bed instanceof CompoundTag bedComp) {
+                ListTag items = bedComp.getListOrEmpty("Items");
+                int i = 0;
+                for (Tag el : items) {
+                    if (el instanceof CompoundTag item) {
+                        addOfflineStack(slots, base + 2000 + i, item, depth + 1);
+                        i++;
+                    }
+                }
+            }
         }
     }
 
@@ -270,6 +363,17 @@ public class FakeInspectorMod implements ModInitializer {
             }
         } catch (Exception ignored) {
         }
+        // 加载记录过的真实玩家
+        try {
+            if (Files.exists(REAL_FILE)) {
+                Set<String> s = GSON.fromJson(Files.readString(REAL_FILE, StandardCharsets.UTF_8), FAKE_TYPE);
+                if (s != null) {
+                    knownRealUuids.addAll(s);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        loadUsercache();
         // 先加载持久化的 uuid -> 名字
         try {
             if (Files.exists(NAMES_FILE)) {
@@ -304,11 +408,34 @@ public class FakeInspectorMod implements ModInitializer {
                         if (parts.length >= 2) {
                             String name = parts[1];
                             if (!name.isBlank()) {
+                                // 凡是 /player <名字> ... 出现过的，都当作召唤过的假人名字
+                                spawnedBotNames.add(name);
                                 UUID uu = UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8));
                                 knownNames.putIfAbsent(uu.toString(), name);
                             }
                         }
                     }
+                }
+            }
+        } catch (Exception ignored) {
+            // 忽略
+        }
+    }
+
+    /** 读取 usercache.json，建立 uuid -> 名字 的映射（用于显示 v4 假人的真名）。 */
+    private static void loadUsercache() {
+        try {
+            Path uc = FabricLoader.getInstance().getGameDir().resolve("usercache.json");
+            if (!Files.exists(uc)) {
+                return;
+            }
+            JsonArray arr = JsonParser.parseString(Files.readString(uc, StandardCharsets.UTF_8)).getAsJsonArray();
+            for (JsonElement el : arr) {
+                JsonObject o = el.getAsJsonObject();
+                String u = o.has("uuid") ? o.get("uuid").getAsString() : null;
+                String n = o.has("name") ? o.get("name").getAsString() : null;
+                if (u != null && n != null && !u.isBlank() && !n.isBlank()) {
+                    uuidNameCache.putIfAbsent(u, n);
                 }
             }
         } catch (Exception ignored) {

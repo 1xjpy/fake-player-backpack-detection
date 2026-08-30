@@ -1,6 +1,7 @@
 package com.elysia.fakeinspector;
 
 import com.elysia.fakeinspector.networking.FakePlayerData;
+import com.elysia.fakeinspector.networking.FakePlayerDisplayPayload;
 import com.elysia.fakeinspector.networking.FakeSlot;
 import com.elysia.fakeinspector.server.FakePlayerCollector;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -8,6 +9,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -45,6 +47,18 @@ public final class FakeInspectorCommand {
                                                 "[FakePlayerInspector] 后台读取已" + (enabled ? "开启" : "关闭")), false);
                                         return 1;
                                     })))
+                    .then(Commands.literal("display")
+                            .then(Commands.argument("state", BoolArgumentType.bool())
+                                    .executes(ctx -> {
+                                        boolean enabled = BoolArgumentType.getBool(ctx, "state");
+                                        ServerPlayer player = ctx.getSource().getPlayer();
+                                        if (player != null) {
+                                            ServerPlayNetworking.send(player, new FakePlayerDisplayPayload(enabled));
+                                        }
+                                        ctx.getSource().sendSuccess(() -> Component.literal(
+                                                "[FakePlayerInspector] 悬停显示假人背包已" + (enabled ? "开启" : "关闭")), false);
+                                        return 1;
+                                    })))
                     .then(Commands.argument("target", StringArgumentType.word())
                             .executes(ctx -> backpack(ctx, StringArgumentType.getString(ctx, "target")))));
         });
@@ -59,6 +73,7 @@ public final class FakeInspectorCommand {
         src.sendSuccess(() -> Component.literal("    /fpi                    查看假人列表"), false);
         src.sendSuccess(() -> Component.literal("    /fpi <假人名>           查看某假人背包"), false);
         src.sendSuccess(() -> Component.literal("    /fpi auto true/false    后台读取开关"), false);
+        src.sendSuccess(() -> Component.literal("    /fpi display true/false 悬停显示假人背包开关"), false);
         return 1;
     }
 

@@ -2,6 +2,7 @@ package com.elysia.fakeinspector.client;
 
 import com.elysia.fakeinspector.networking.FakePlayerQueryPayload;
 import com.elysia.fakeinspector.networking.FakePlayerResponsePayload;
+import com.elysia.fakeinspector.networking.FakePlayerDisplayPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
@@ -27,6 +28,12 @@ public class FakeInspectorClient implements ClientModInitializer {
             client.execute(() -> ClientFakeDataCache.set(payload.players()));
         });
 
+        // 接收服务端「悬停显示假人背包」开关
+        ClientPlayNetworking.registerGlobalReceiver(FakePlayerDisplayPayload.TYPE, (payload, context) -> {
+            Minecraft client = context.client();
+            client.execute(() -> ClientFakeDataCache.setShowHolders(payload.enabled()));
+        });
+
         // 加入世界时自动请求一次
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
                 client.execute(() -> ClientPlayNetworking.send(new FakePlayerQueryPayload())));
@@ -45,6 +52,9 @@ public class FakeInspectorClient implements ClientModInitializer {
 
         // 在物品 tooltip 末尾追加假人背包数量与名字
         ItemTooltipCallback.EVENT.register((stack, context, tooltipType, lines) -> {
+            if (!ClientFakeDataCache.isShowHolders()) {
+                return;
+            }
             List<ClientFakeDataCache.Holder> holders = ClientFakeDataCache.holdersFor(stack);
             if (holders.isEmpty()) {
                 return;
@@ -52,8 +62,11 @@ public class FakeInspectorClient implements ClientModInitializer {
             if (!lines.isEmpty() && !lines.get(lines.size() - 1).getString().isEmpty()) {
                 lines.add(Component.empty());
             }
+            lines.add(Component.translatable("tooltip.fakeinspector.holder.header")
+                    .withStyle(ChatFormatting.GOLD));
             for (ClientFakeDataCache.Holder h : holders) {
-                lines.add(Component.literal(h.name() + " 背包 × " + h.count()).withStyle(ChatFormatting.AQUA));
+                lines.add(Component.translatable("tooltip.fakeinspector.holder.line",
+                        h.name(), h.count()).withStyle(ChatFormatting.AQUA));
             }
         });
     }

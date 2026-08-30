@@ -12,6 +12,7 @@ import java.util.List;
 public final class ClientFakeDataCache {
 
     private static volatile List<FakePlayerData> data = List.of();
+    private static volatile boolean showHolders = false;
 
     private ClientFakeDataCache() {
     }
@@ -22,6 +23,20 @@ public final class ClientFakeDataCache {
 
     public static void set(List<FakePlayerData> newData) {
         data = newData == null ? List.of() : List.copyOf(newData);
+    }
+
+    /** 是否在物品 tooltip 上显示假人持有信息（默认关闭，需要手动开开关）。 */
+    public static boolean isShowHolders() {
+        return showHolders;
+    }
+
+    public static void setShowHolders(boolean value) {
+        showHolders = value;
+    }
+
+    public static boolean toggleShowHolders() {
+        showHolders = !showHolders;
+        return showHolders;
     }
 
     public static List<FakePlayerData> get() {

@@ -1,4 +1,7 @@
 {
   "key.category.fakeinspector": "Fake Player Inspector",
-  "key.fakeinspector.refresh": "Refresh Fake Player Backpacks"
+  "key.fakeinspector.refresh": "Refresh Fake Player Backpacks",
+  "key.fakeinspector.toggle": "Toggle Fake Player Hover Info",
+  "tooltip.fakeinspector.holder.header": "Held by Fake Players",
+  "tooltip.fakeinspector.holder.line": "%s has %s in inventory"
 }
