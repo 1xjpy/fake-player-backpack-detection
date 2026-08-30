@@ -66,6 +66,7 @@ public class FakeInspectorMod implements ModInitializer {
     private static final Map<String, String> lastOnline = new HashMap<>();
     private static final Map<String, String> knownNames = new HashMap<>();
     private static final Set<String> knownFakeUuids = new HashSet<>();
+    private static boolean autoRead = true;
 
     @Override
     public void onInitialize() {
@@ -88,6 +89,9 @@ public class FakeInspectorMod implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (++tickCounter >= 20) {
                 tickCounter = 0;
+                if (!autoRead) {
+                    return;
+                }
                 recordFakePlayerEvents(server);
                 List<FakePlayerData> now = FakePlayerCollector.collect(server);
                 if (!FakePlayerCollector.sameData(lastSaved, now)) {
@@ -101,6 +105,14 @@ public class FakeInspectorMod implements ModInitializer {
                 }
             }
         });
+    }
+
+    public static void setAutoRead(boolean enabled) {
+        autoRead = enabled;
+    }
+
+    public static boolean isAutoRead() {
+        return autoRead;
     }
 
     /** 用周期对比记录假人出现（spawn）与消失（kill）。 */
@@ -187,6 +199,9 @@ public class FakeInspectorMod implements ModInitializer {
 
     /** 从当前世界的 players\\data 读取所有离线玩家/假人的背包。 */
     private static void loadOfflineFromDisk(MinecraftServer server) {
+        if (!autoRead) {
+            return;
+        }
         // 进入新世界时先清空旧数据，避免上个世界的假人残留
         FakePlayerCollector.clear();
         try {

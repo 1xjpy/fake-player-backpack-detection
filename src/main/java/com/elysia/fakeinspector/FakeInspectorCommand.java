@@ -3,6 +3,7 @@ package com.elysia.fakeinspector;
 import com.elysia.fakeinspector.networking.FakePlayerData;
 import com.elysia.fakeinspector.networking.FakeSlot;
 import com.elysia.fakeinspector.server.FakePlayerCollector;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
@@ -35,6 +36,15 @@ public final class FakeInspectorCommand {
                 dispatcher.register(Commands.literal("fpi")
                         .executes(FakeInspectorCommand::list)
                         .then(Commands.literal("list").executes(FakeInspectorCommand::list))
+                        .then(Commands.literal("auto")
+                                .then(Commands.argument("state", BoolArgumentType.bool())
+                                        .executes(ctx -> {
+                                            boolean enabled = BoolArgumentType.getBool(ctx, "state");
+                                            FakeInspectorMod.setAutoRead(enabled);
+                                            ctx.getSource().sendSuccess(() -> Component.literal(
+                                                    "[FakePlayerInspector] 后台读取已" + (enabled ? "开启" : "关闭")), false);
+                                            return 1;
+                                        })))
                         .then(Commands.argument("target", StringArgumentType.word())
                                 .executes(ctx -> backpack(ctx, StringArgumentType.getString(ctx, "target"))))));
     }
