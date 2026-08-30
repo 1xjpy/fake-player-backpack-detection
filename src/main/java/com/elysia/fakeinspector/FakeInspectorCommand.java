@@ -31,7 +31,6 @@ public final class FakeInspectorCommand {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 dispatcher.register(Commands.literal("fpi")
-                        .requires(src -> src.hasPermission(2))
                         .executes(FakeInspectorCommand::list)
                         .then(Commands.literal("list").executes(FakeInspectorCommand::list))));
     }
